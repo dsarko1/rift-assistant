@@ -65,3 +65,22 @@ buttons.forEach((button) => {
 
 // Vista inicial
 loadView("profile");
+
+async function cargarPerfil() {
+  try {
+    const account = await window.riotAPI.getSummoner("matiasbarraza777#darko");
+    const summoner = await window.riotAPI.getSummonerV4(account.puuid);
+
+    document.getElementById("riot-name").textContent = account.gameName;
+    document.getElementById("riot-tag").textContent = `#${account.tagLine}`;
+    document.getElementById("riot-level").textContent =
+      "Nivel " + summoner.summonerLevel;
+    document.getElementById(
+      "riot-icon"
+    ).src = `https://ddragon.leagueoflegends.com/cdn/13.14.1/img/profileicon/${summoner.profileIconId}.png`;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+cargarPerfil();

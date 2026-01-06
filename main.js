@@ -37,4 +37,20 @@ ipcMain.handle("get-summoner", async (_, riotId) => {
   return await response.json();
 });
 
+ipcMain.handle("get-summoner-v4", async (_, puuid) => {
+  const url = `https://la2.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+
+  const response = await fetch(url, {
+    headers: {
+      "X-Riot-Token": RIOT_API_KEY,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al obtener summoner-v4");
+  }
+
+  return await response.json();
+});
+
 app.whenReady().then(createWindow);
