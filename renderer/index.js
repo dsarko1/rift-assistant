@@ -1,3 +1,8 @@
+window.testSummoner = async () => {
+  const data = await window.riotAPI.getSummoner();
+  console.log(data);
+};
+
 const buttons = document.querySelectorAll(".nav-item");
 const view = document.getElementById("view");
 
@@ -7,9 +12,9 @@ const views = {
       <div class="profile-card">
         <div class="avatar"></div>
         <div class="profile-info">
-          <h2>matiasbarraza777#LAS</h2>
-          <p>Nivel 371</p>
-          <span class="rank">Esmeralda III</span>
+          <h2>Nombre del Invocador</h2>
+          <p>Nivel 123</p>
+          <span class="rank">Oro IV</span>
         </div>
       </div>
 
@@ -26,14 +31,14 @@ const views = {
   matchups: `
     <section class="placeholder">
       <h2>Matchups</h2>
-      <p>matchup analysis y demás.</p>
+      <p>Acá va el análisis de enfrentamientos.</p>
     </section>
   `,
 
   pool: `
     <section class="placeholder">
       <h2>Champion Pool</h2>
-      <p>champion pool para recomendaciones, etc.</p>
+      <p>Acá vas a gestionar tus campeones.</p>
     </section>
   `,
 };

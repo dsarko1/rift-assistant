@@ -1,8 +1,9 @@
 {
   "name": "rift-assistant",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,5 +12,8 @@
   "description": "",
   "devDependencies": {
     "electron": "^39.2.7"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
   }
 }
