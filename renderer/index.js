@@ -1,5 +1,6 @@
 const buttons = document.querySelectorAll(".nav-item");
 const title = document.getElementById("view-title");
+const view = document.getElementById("view");
 
 const titles = {
   profile: "Perfil",
@@ -9,10 +10,21 @@ const titles = {
 
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
+    if (button.classList.contains("active")) return;
+
     buttons.forEach((b) => b.classList.remove("active"));
     button.classList.add("active");
 
-    const view = button.dataset.view;
-    title.textContent = titles[view];
+    const viewKey = button.dataset.view;
+
+    // Fade out
+    view.classList.remove("active");
+
+    setTimeout(() => {
+      title.textContent = titles[viewKey];
+
+      // Fade in
+      view.classList.add("active");
+    }, 200);
   });
 });

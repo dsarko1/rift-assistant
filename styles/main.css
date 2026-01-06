@@ -71,3 +71,14 @@ nav {
   flex: 1;
   padding: 2rem;
 }
+
+.view {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.view.active {
+  opacity: 1;
+  transform: translateY(0);
+}
