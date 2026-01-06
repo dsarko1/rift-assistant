@@ -5,18 +5,28 @@
     <meta charset="UTF-8" />
     <title>Rift Assistant</title>
     <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 </head>
 
 <body>
     <div id="app">
         <aside class="sidebar">
-            <div class="logo">RA</div>
+            <div class="logo"><i class="fa-brands fa-rebel"></i></div>
 
             <nav>
-                <button class="nav-item active" data-view="profile">👤</button>
-                <button class="nav-item" data-view="matchups">⚔️</button>
-                <button class="nav-item" data-view="pool">🧩</button>
+                <button class="nav-item active" data-view="profile">
+                    <i class="fa-solid fa-user"></i>
+                </button>
+
+                <button class="nav-item" data-view="matchups">
+                    <i class="fa-solid fa-code-compare"></i>
+                </button>
+
+                <button class="nav-item" data-view="pool">
+                    <i class="fa-solid fa-people-group"></i>
+                </button>
             </nav>
+
         </aside>
 
         <main class="content">
