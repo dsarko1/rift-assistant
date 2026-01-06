@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Rift Assistant</title>
+    <link rel="stylesheet" href="styles/main.css" />
+</head>
+
+<body>
+    <div id="app">
+        <aside class="sidebar">
+            <div class="logo">RA</div>
+
+            <nav>
+                <button class="nav-item active" data-view="profile">👤</button>
+                <button class="nav-item" data-view="matchups">⚔️</button>
+                <button class="nav-item" data-view="pool">🧩</button>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <h1 id="view-title">Perfil</h1>
+            <p>Seleccioná una sección desde la sidebar.</p>
+        </main>
+    </div>
+
+    <script src="renderer/index.js"></script>
+</body>
+
+</html>
