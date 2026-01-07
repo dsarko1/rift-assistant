@@ -10,45 +10,37 @@ const views = {
   profile: `
     <section class="profile-layout">
       <div class="profile-card">
-        <div class="avatar"></div>
+        <div class="profile-icon">
+          <img id="riot-icon" alt="Profile Icon" />
+        </div>
+
         <div class="profile-info">
-          <h2>Nombre del Invocador</h2>
-          <p>Nivel 123</p>
-          <span class="rank">Oro IV</span>
+          <h2 id="riot-name">Invocador</h2>
+          <p id="riot-tag">#tag</p>
+          <p id="riot-level">Nivel</p>
         </div>
       </div>
 
       <div class="match-history">
         <h3>Historial de partidas</h3>
-
-        <div class="match-card"></div>
-        <div class="match-card"></div>
-        <div class="match-card"></div>
+        <div class="matches"></div>
       </div>
-    </section>
-  `,
-
-  matchups: `
-    <section class="placeholder">
-      <h2>Matchups</h2>
-      <p>Acá va el análisis de enfrentamientos.</p>
-    </section>
-  `,
-
-  pool: `
-    <section class="placeholder">
-      <h2>Champion Pool</h2>
-      <p>Acá vas a gestionar tus campeones.</p>
     </section>
   `,
 };
 
 function loadView(key) {
+  if (!views[key]) return;
+
   view.classList.remove("active");
 
   setTimeout(() => {
     view.innerHTML = views[key];
     view.classList.add("active");
+
+    if (key === "profile") {
+      cargarPerfil();
+    }
   }, 200);
 }
 
@@ -63,7 +55,6 @@ buttons.forEach((button) => {
   });
 });
 
-// Vista inicial
 loadView("profile");
 
 async function cargarPerfil() {
@@ -82,5 +73,3 @@ async function cargarPerfil() {
     console.error(error);
   }
 }
-
-cargarPerfil();
