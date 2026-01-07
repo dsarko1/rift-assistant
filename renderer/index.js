@@ -3,6 +3,7 @@ window.testSummoner = async () => {
   console.log(data);
 };
 
+let itemDictionary = null;
 let cachedMatches = [];
 let cachedPuuid = "";
 let currentFilter = "all"; // 'all', 'ranked', 'aram', 'arena', 'normal'
@@ -75,18 +76,15 @@ async function cargarPerfil() {
     const account = await window.riotAPI.getSummoner(`${gameName}#${tag}`);
     currentPuuid = account.puuid;
 
-    // VERIFICAR CACHE: Si ya tenemos datos para este PUUID, usarlos
     if (cachedPuuid === currentPuuid && cachedMatches.length > 0) {
       console.log("Usando partidas cacheadas");
-      mostrarPartidasCache();
-      return; // No cargar de nuevo
+      await mostrarPartidasCache();
+      return;
     }
 
-    // Si no hay cache, cargar normalmente
     console.log("2. Obteniendo summoner info...");
     const summoner = await window.riotAPI.getSummonerV4(currentPuuid, region);
 
-    // Mostrar datos básicos
     document.getElementById("riot-name").textContent = gameName;
     document.getElementById("riot-tag").textContent = `#${tag}`;
     document.getElementById("riot-level").textContent = `Nivel ${
@@ -112,11 +110,10 @@ async function cargarPerfil() {
 
     document.getElementById("riot-rank").textContent = rankText;
 
-    // 4. CARGAR HISTORIAL DE PARTIDAS (solo si no hay cache)
     console.log("4. Cargando historial de partidas...");
-    matchesLoaded = 0; // Reset solo si es nuevo PUUID
-    cachedMatches = []; // Limpiar cache viejo
-    cachedPuuid = currentPuuid; // Guardar para cache
+    matchesLoaded = 0;
+    cachedMatches = [];
+    cachedPuuid = currentPuuid;
 
     await cargarMasPartidas();
   } catch (err) {
@@ -124,23 +121,75 @@ async function cargarPerfil() {
   }
 }
 
-function mostrarPartidasCache() {
+async function cargarDiccionarioItems() {
+  if (itemDictionary) return itemDictionary;
+
+  try {
+    const respuesta = await fetch("assets/items.json");
+    const datos = await respuesta.json();
+
+    itemDictionary = {};
+    for (const [key, itemData] of Object.entries(datos)) {
+      if (itemData.iconPath) {
+        const nombreArchivo = itemData.iconPath
+          .toLowerCase()
+          .split("/")
+          .pop()
+          .replace(".dds", ".png");
+        itemDictionary[itemData.id] = nombreArchivo;
+      }
+    }
+    console.log(
+      "Diccionario de ítems cargado con",
+      Object.keys(itemDictionary).length,
+      "entradas."
+    );
+    return itemDictionary;
+  } catch (error) {
+    console.error("Error cargando diccionario de ítems:", error);
+    return {};
+  }
+}
+
+async function getItemImageUrl(itemId) {
+  if (!itemId || itemId === 0) return null;
+
+  // Asegurarse de que el diccionario esté cargado
+  const dict = await cargarDiccionarioItems();
+  const nombreArchivo = dict[itemId];
+
+  if (nombreArchivo) {
+    // Construir la URL de Community Dragon usando el nombre correcto
+    return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/${nombreArchivo}`;
+  } else {
+    // Fallback: intentar con Data Dragon (para items muy comunes)
+    console.warn(
+      `No se encontró el ítem ID ${itemId} en el diccionario. Usando fallback.`
+    );
+    return `https://ddragon.leagueoflegends.com/cdn/14.4.1/img/item/${itemId}.png`;
+  }
+}
+
+async function mostrarPartidasCache() {
   const matchesContainer = document.querySelector(".matches");
   if (!matchesContainer) return;
 
-  // Limpiar contenedor
   matchesContainer.innerHTML = "";
 
-  // Agregar partidas cacheadas
-  cachedMatches.forEach((matchData) => {
-    const matchElement = crearElementoPartida(matchData, currentPuuid);
-    matchesContainer.appendChild(matchElement);
-  });
+  for (const matchData of cachedMatches) {
+    try {
+      const matchElement = await crearYConfigurarElementoPartida(
+        matchData,
+        currentPuuid
+      );
+      matchesContainer.appendChild(matchElement);
+    } catch (error) {
+      console.error("Error creando elemento de partida cacheada:", error);
+    }
+  }
 
-  // Actualizar contador
   matchesLoaded = cachedMatches.length;
 
-  // Mostrar botón ver más si es necesario
   actualizarBotonVerMas();
 }
 
@@ -181,7 +230,10 @@ async function cargarMasPartidas() {
         // GUARDAR EN CACHE
         cachedMatches.push(matchData);
 
-        const matchElement = crearElementoPartida(matchData, currentPuuid);
+        const matchElement = await crearYConfigurarElementoPartida(
+          matchData,
+          currentPuuid
+        );
         matchesContainer.appendChild(matchElement);
         matchesLoaded++;
       } catch (matchError) {
@@ -195,19 +247,15 @@ async function cargarMasPartidas() {
   }
 }
 
-function crearElementoPartida(matchData, playerPuuid) {
-  // Encontrar al jugador en la partida
+async function crearYConfigurarElementoPartida(matchData, playerPuuid) {
   const playerIndex = matchData.metadata.participants.indexOf(playerPuuid);
   const player = matchData.info.participants[playerIndex];
 
-  // Determinar resultado
   const victory = player.win;
   const championName = player.championName;
 
-  // Obtener información del modo usando queueId
   const queueInfo = traducirQueueId(matchData.info.queueId);
 
-  // KDA
   const kills = player.kills;
   const deaths = player.deaths;
   const assists = player.assists;
@@ -216,77 +264,84 @@ function crearElementoPartida(matchData, playerPuuid) {
       ? (kills + assists).toFixed(1)
       : ((kills + assists) / deaths).toFixed(2);
 
-  // Duración
   const durationMinutes = Math.floor(matchData.info.gameDuration / 60);
   const durationSeconds = matchData.info.gameDuration % 60;
 
-  // Fecha
   const gameDate = new Date(matchData.info.gameCreation);
   const timeAgo = getTimeAgo(gameDate);
 
-  // Crear elemento HTML
   const div = document.createElement("div");
   div.className = `match ${victory ? "victory" : "defeat"}`;
-  // Dentro del innerHTML, asegúrate de que no haya saltos de línea innecesarios
+
   div.innerHTML = `
-  <div class="match-champion">
-    <img src="https://ddragon.leagueoflegends.com/cdn/14.4.1/img/champion/${championName}.png" 
-         alt="${championName}" 
-         title="${championName}">
-    <span class="champion-level">${player.champLevel}</span>
-  </div>
-  <div class="match-result">
-    <span class="result-text">${victory ? "VICTORIA" : "DERROTA"}</span>
-    <span class="match-mode" title="${queueInfo.mode} - ${queueInfo.map}">
-      ${queueInfo.short}
-    </span>
-  </div>
-  <div class="match-stats">
-    <div class="kda">${kills}/${deaths}/${assists}</div>
-    <div class="kda-ratio">${kda} KDA</div>
-    <div class="cs">${
-      player.totalMinionsKilled + player.neutralMinionsKilled
-    } CS</div>
-  </div>
-  <div class="match-items">
-    ${[0, 1, 2, 3, 4, 5, 6]
-      .map((i) => {
-        const itemId = player[`item${i}`];
-        if (itemId > 0) {
-          const ddragonUrl = `https://ddragon.leagueoflegends.com/cdn/14.4.1/img/item/${itemId}.png`;
-          const cdragonUrl = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/items-icons2d/${itemId}.png`;
+    <div class="match-champion">
+      <img src="https://ddragon.leagueoflegends.com/cdn/14.4.1/img/champion/${championName}.png" 
+           alt="${championName}" 
+           title="${championName}"
+           loading="lazy">
+      <span class="champion-level">${player.champLevel}</span>
+    </div>
+    <div class="match-result">
+      <span class="result-text">${victory ? "VICTORIA" : "DERROTA"}</span>
+      <span class="match-mode" title="${queueInfo.mode} - ${queueInfo.map}">
+        ${queueInfo.short}
+      </span>
+    </div>
+    <div class="match-stats">
+      <div class="kda">${kills}/${deaths}/${assists}</div>
+      <div class="kda-ratio">${kda} KDA</div>
+      <div class="cs">${
+        player.totalMinionsKilled + player.neutralMinionsKilled
+      } CS</div>
+    </div>
+    <div class="match-items" id="items-${matchData.metadata.matchId}">
+      ${[0, 1, 2, 3, 4, 5, 6]
+        .map(() => '<div class="item-empty"></div>')
+        .join("")}
+    </div>
+    <div class="match-duration">
+      ${durationMinutes}:${durationSeconds.toString().padStart(2, "0")}
+    </div>
+    <div class="match-time">${timeAgo}</div>
+  `;
 
-          return `
-      <div class="item-container">
-        <img src="${ddragonUrl}"
-             class="item-icon"
-             title="Item ${i + 1}"
-             onerror="
-               this.onerror=null;
-               if(this.src !== '${cdragonUrl}') {
-                 this.src='${cdragonUrl}';
-               } else {
-                 this.style.display='none';
-                 this.nextElementSibling.style.display='block';
-               }">
-        <div class="item-placeholder" style="display: none;">${itemId}</div>
-      </div>
-    `;
-        }
-        return '<div class="item-empty"></div>';
-      })
-      .join("")}
-  </div>
-  <div class="match-duration">
-    ${durationMinutes}:${durationSeconds.toString().padStart(2, "0")}
-  </div>
-  <div class="match-time">${timeAgo}</div>
-`;
-
-  console.log(
-    "Items del jugador:",
-    [0, 1, 2, 3, 4, 5, 6].map((i) => player[`item${i}`])
+  const contenedorItems = div.querySelector(
+    `#items-${matchData.metadata.matchId}`
   );
+  for (let i = 0; i <= 6; i++) {
+    const itemId = player[`item${i}`];
+    if (itemId > 0) {
+      try {
+        const itemUrl = await getItemImageUrl(itemId);
+        const img = document.createElement("img");
+        img.className = "item-icon";
+        img.title = `Item ${i + 1}`;
+        img.loading = "lazy";
+        img.src = itemUrl;
+
+        img.onerror = function () {
+          console.warn(`Falló la carga del ítem ${itemId}`);
+          const placeholder = document.createElement("div");
+          placeholder.className = "item-placeholder";
+          placeholder.textContent = itemId;
+          contenedorItems.children[i].replaceWith(placeholder);
+        };
+
+        if (contenedorItems.children[i]) {
+          contenedorItems.children[i].replaceWith(img);
+        }
+      } catch (error) {
+        console.error(`Error cargando ítem ${itemId}:`, error);
+        const placeholder = document.createElement("div");
+        placeholder.className = "item-placeholder";
+        placeholder.textContent = itemId;
+        if (contenedorItems.children[i]) {
+          contenedorItems.children[i].replaceWith(placeholder);
+        }
+      }
+    }
+  }
+
   return div;
 }
 
@@ -316,7 +371,6 @@ function filtrarPartidas(tipo) {
       case "normal":
         mostrar = modeText.includes("normal") || modeText.includes("quickplay");
         break;
-      // 'all' muestra todo
     }
 
     match.style.display = mostrar ? "flex" : "none";
@@ -341,7 +395,6 @@ function añadirFiltros() {
     matchHistory.nextSibling
   );
 
-  // Event listeners
   filterContainer.querySelectorAll(".filter-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       filterContainer
