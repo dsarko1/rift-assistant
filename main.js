@@ -106,6 +106,85 @@ ipcMain.handle("get-ranked", async (_, puuid, region = "la2") => {
   return data;
 });
 
+ipcMain.handle(
+  "get-match-history",
+  async (_, puuid, region = "la2", count = 5, start = 0) => {
+    console.log("=== GET MATCH HISTORY ===");
+    console.log("PUUID:", puuid, "Count:", count, "Start:", start);
+
+    let routingRegion = "americas";
+    if (region.startsWith("euw") || region.startsWith("eun")) {
+      routingRegion = "europe";
+    } else if (region.startsWith("kr") || region.startsWith("jp")) {
+      routingRegion = "asia";
+    }
+
+    const url = `https://${routingRegion}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}`;
+    console.log("Match history URL:", url);
+
+    const response = await fetch(url, {
+      headers: {
+        "X-Riot-Token": RIOT_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error match history:", errorText);
+      throw new Error(
+        `Error ${response.status}: No se pudo obtener el historial de partidas`
+      );
+    }
+
+    const matchIds = await response.json();
+    console.log("Match IDs obtenidos:", matchIds);
+    return matchIds;
+  }
+);
+
+ipcMain.handle("get-match-details", async (_, matchId, region = "la2") => {
+  console.log("=== GET MATCH DETAILS ===");
+  console.log("Match ID:", matchId);
+  console.log("Region parameter:", region);
+
+  // Determinar routing region (IMPORTANTE)
+  let routingRegion = "americas"; // Para LAS/LA1/NA
+
+  if (
+    region.startsWith("euw") ||
+    region.startsWith("eun") ||
+    region.startsWith("tr") ||
+    region.startsWith("ru")
+  ) {
+    routingRegion = "europe";
+  } else if (region.startsWith("kr") || region.startsWith("jp")) {
+    routingRegion = "asia";
+  }
+
+  console.log("Routing region calculada:", routingRegion);
+
+  const url = `https://${routingRegion}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
+  console.log("URL completa:", url);
+
+  const response = await fetch(url, {
+    headers: {
+      "X-Riot-Token": RIOT_API_KEY,
+    },
+  });
+
+  console.log("Status:", response.status, response.statusText);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Error body:", errorText);
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  const matchData = await response.json();
+  console.log("Match details obtenidos exitosamente");
+  return matchData;
+});
+
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
